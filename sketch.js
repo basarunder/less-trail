@@ -1,22 +1,21 @@
 // --- Global Variables ---
-let currentPhrase = "Tap or Click to Roll (uses API)"; // Updated instruction
-let usedWords = new Set(); // Stores used BASE words for this session
+let currentPhrase = "Tap or Click to Roll (uses API)";
+let usedWords = new Set();
 let currentFontSize = 60;
-let isLoading = false; // Flag to show loading state
+let isLoading = false;
+let showDebugShapes = true; // <<< Set to false to hide debug visuals later
 
 // --- p5.js Setup Function ---
 function setup() {
     createCanvas(windowWidth, windowHeight);
     console.log(`[Setup] Canvas created: width=${windowWidth}, height=${windowHeight}`);
     console.log(`[Setup] p5 internal width=${width}, height=${height}`);
-
     colorMode(RGB);
-    textAlign(CENTER, CENTER); // Critical for alignment
+    textAlign(CENTER, CENTER);
     console.log("[Setup] textAlign set to (CENTER, CENTER)");
     textFont('Arial, Helvetica, sans-serif', currentFontSize);
     fill(255);
-
-    console.log("[Setup] Setup complete. Tap or Click to fetch words and generate.");
+    console.log("[Setup] Setup complete. Tap or Click.");
     calculateAdaptiveFontSize(currentPhrase);
 }
 
@@ -24,77 +23,78 @@ function setup() {
 function draw() {
     background(0);
     textSize(currentFontSize);
-    fill(255);
+    fill(255); // Set text color to white
 
     let displayPhrase = isLoading ? "Rolling..." : currentPhrase;
 
+    // --- Calculations for Text Box ---
     let padding = width * 0.05;
     let textBoxWidth = width - (padding * 2);
     let textBoxHeight = height - (padding * 2);
     let centerX = width / 2;
     let centerY = height / 2;
 
-    // Only log periodically or when needed to avoid flooding console
-    // if (frameCount % 60 === 1) { // Log roughly once per second
-    //     console.log(`[Draw Periodic] Frame ${frameCount}: W=${width}, H=${height}, CX=${centerX.toFixed(1)}, CY=${centerY.toFixed(1)}, BoxW=${textBoxWidth.toFixed(1)}, BoxH=${textBoxHeight.toFixed(1)}, FontSize=${currentFontSize.toFixed(1)}`);
-    // }
+    // --- Optional: Visual Debugging ---
+    if (showDebugShapes) {
+        push(); // Isolate debug drawing styles
+        noFill(); // Don't fill the shapes
+        strokeWeight(1);
 
+        // Draw a red box representing the text bounding box
+        stroke(255, 0, 0); // Red
+        rectMode(CENTER); // Draw rectangle from its center
+        rect(centerX, centerY, textBoxWidth, textBoxHeight);
+
+        // Draw a small green circle at the calculated center point
+        stroke(0, 255, 0); // Green
+        ellipse(centerX, centerY, 10, 10); // 10px diameter circle
+
+        pop(); // Restore original drawing styles
+    }
+    // --- End Visual Debugging ---
+
+
+    // Draw the actual text (should be centered within the red box)
+    fill(255); // Make sure text fill is reset to white after debug shapes
     text(displayPhrase, centerX, centerY, textBoxWidth, textBoxHeight);
 }
 
-// --- NEW: Common Trigger Function ---
-// Encapsulates the logic to start generating a phrase
-async function triggerPhraseGeneration() {
-    // Prevent triggering if already loading
-    if (isLoading) {
-        console.log("[Trigger] Ignored: Already loading.");
-        return;
-    }
 
+// --- Trigger Function ---
+async function triggerPhraseGeneration() {
+    if (isLoading) { console.log("[Trigger] Ignored: Already loading."); return; }
     isLoading = true;
     currentPhrase = "Rolling...";
     console.log("[Trigger] Set loading state TRUE");
-    // No need to explicitly call draw() here, it loops automatically
+    // No need to call draw(), it loops
 
     console.log("\n--- Trigger Received: Generating Phrase via API ---");
     try {
-        currentPhrase = await generatePhrase(); // generatePhrase is async
+        currentPhrase = await generatePhrase();
         console.log(`[Trigger] Phrase generated: "${currentPhrase}"`);
     } catch (error) {
         console.error("[Trigger] Error generating phrase:", error);
         currentPhrase = "Error: Could not generate phrase";
     } finally {
-        isLoading = false; // Reset loading state regardless of success/failure
+        isLoading = false;
         console.log("[Trigger] Set loading state FALSE");
-        calculateAdaptiveFontSize(currentPhrase); // Recalculate size for the result
+        calculateAdaptiveFontSize(currentPhrase);
         console.log("[Trigger] Adaptive font size recalculated.");
     }
 }
 
-// --- NEW: p5.js Mouse Press Handler ---
+// --- Event Handlers ---
 function mousePressed() {
     console.log("[Event] Mouse Pressed");
-    // Call the common trigger function
     triggerPhraseGeneration();
-    // You might return false here if you want to prevent default browser behaviors,
-    // but usually not necessary for mouse clicks on canvas unless it interferes.
-    // return false;
 }
 
-// --- NEW: p5.js Touch Start Handler ---
 function touchStarted() {
     console.log("[Event] Touch Started");
-    // Call the common trigger function
     triggerPhraseGeneration();
-    // IMPORTANT: Return false to prevent default browser touch actions
-    // like scrolling or zooming when tapping the canvas.
-    return false;
+    return false; // Prevent default touch actions
 }
 
-// --- REMOVED: keyPressed() function is no longer needed ---
-// function keyPressed() { ... }
-
-// --- p5.js Window Resize Handler ---
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
     console.log(`[Window Resized] New dimensions: width=${windowWidth}, height=${windowHeight}`);
@@ -102,8 +102,9 @@ function windowResized() {
     calculateAdaptiveFontSize(currentPhrase);
 }
 
+
 // --- Helper: Fetch Word from Datamuse API ---
-// (Remains the same as before)
+// (Remains the same)
 async function fetchWordFromAPI(length, typeHint = 'any') {
     if (length < 1 || length > 15) { console.log(`Invalid length requested: ${length}`); return null; }
     console.log(`  Fetching API: length=${length}, hint=${typeHint}`);
@@ -138,8 +139,9 @@ async function fetchWordFromAPI(length, typeHint = 'any') {
     }
 }
 
+
 // --- Helper: Generate Phrase using API ---
-// (Remains the same as before)
+// (Remains the same)
 async function generatePhrase() {
     let d1 = floor(random(1, 7)), d2 = floor(random(1, 7));
     console.log(`Rolled: D1=${d1}, D2=${d2}`);
@@ -197,7 +199,7 @@ async function generatePhrase() {
 
 
 // --- Helper Function: Adaptive Font Size ---
-// (Remains the same as before)
+// (Remains the same)
 function calculateAdaptiveFontSize(text) {
     if (!text || text.length === 0) { console.log("[FontCalc] No text to calculate size for."); return; }
     let currentText = String(text);
@@ -214,15 +216,12 @@ function calculateAdaptiveFontSize(text) {
         testFontSize -= 2;
         textSize(testFontSize);
         currentTextWidth = textWidth(currentText);
-        // console.log(`[FontCalc] Width Adjust: Size=${testFontSize.toFixed(1)}px, TextWidth=${currentTextWidth.toFixed(1)}px`); // Can be verbose
     }
     let currentTextHeight = textAscent() + textDescent();
-    // console.log(`[FontCalc] Height Check at ${testFontSize.toFixed(1)}px: TextHeight=${currentTextHeight.toFixed(1)}px`); // Can be verbose
     while (currentTextHeight > availableHeight && testFontSize > 10) {
          testFontSize -= 2;
          textSize(testFontSize);
          currentTextHeight = textAscent() + textDescent();
-        //  console.log(`[FontCalc] Height Adjust: Size=${testFontSize.toFixed(1)}px, TextHeight=${currentTextHeight.toFixed(1)}px`); // Can be verbose
     }
     currentFontSize = max(10, testFontSize);
     console.log(`[FontCalc] Final adaptive font size: ${currentFontSize.toFixed(1)}px`);
