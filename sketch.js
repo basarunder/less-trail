@@ -8,22 +8,40 @@ let isLoading = false; // Flag to show loading state
 function setup() {
     createCanvas(windowWidth, windowHeight);
     colorMode(RGB);
+
+    // *** CRITICAL FOR CENTERING ***
+    // Set text alignment to center both horizontally and vertically
     textAlign(CENTER, CENTER);
-    textFont('Arial, Helvetica, sans-serif', currentFontSize);
-    fill(255);
+    // ****************************
+
+    textFont('Arial, Helvetica, sans-serif', currentFontSize); // Use a common font stack
+    fill(255); // White text
 
     console.log("Setup complete. Press 'R' to fetch words and generate.");
-    calculateAdaptiveFontSize(currentPhrase);
+    calculateAdaptiveFontSize(currentPhrase); // Calculate initial size
 }
 
 // --- p5.js Draw Function ---
 function draw() {
-    background(0);
-    textSize(currentFontSize);
-    fill(255);
+    background(0); // Black background each frame
+    textSize(currentFontSize); // Apply the calculated font size
+    fill(255); // Ensure text color is white
 
     let displayPhrase = isLoading ? "Rolling..." : currentPhrase;
-    text(displayPhrase, width / 2, height / 2, width * 0.9, height * 0.9);
+
+    // *** MODIFIED TEXT DRAWING ***
+    // Use width/2 and height/2 as the CENTER point for the text anchor,
+    // because textAlign is (CENTER, CENTER).
+    // Provide a bounding box slightly smaller than the canvas to add padding
+    // and allow for text wrapping.
+
+    let padding = width * 0.05; // e.g., 5% padding on each side (10% total)
+    let textBoxWidth = width - (padding * 2);
+    let textBoxHeight = height - (padding * 2); // Use most of the height
+
+    // Draw the text centered at (width/2, height/2) within the calculated bounding box
+    text(displayPhrase, width / 2, height / 2, textBoxWidth, textBoxHeight);
+    // ***************************
 }
 
 // --- p5.js Key Press Handler ---
@@ -52,6 +70,7 @@ async function keyPressed() {
 // --- p5.js Window Resize Handler ---
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
+    // Recalculate font size on resize to maintain fit
     calculateAdaptiveFontSize(currentPhrase);
 }
 
@@ -169,7 +188,8 @@ async function generatePhrase() {
     if (d1 % 2 === 0 && word2_base.length > 1) { // Only pluralize if D1 even & word > 1 letter
         console.log(`  Attempting pluralization (D1 is even)...`);
         try {
-            let plural_form = pluralize(word2_base); // Use pluralize.js library
+            // Use pluralize.js library (make sure index.html includes it)
+            let plural_form = pluralize(word2_base);
             console.log(`  Plural form: '${plural_form}'`);
 
             // Constraint: Only use plural if length matches D2 roll AND it's different
@@ -227,6 +247,7 @@ async function generatePhrase() {
 
 
 // --- Helper Function: Adaptive Font Size ---
+// (This function remains the same as the previous version, it seemed correct)
 function calculateAdaptiveFontSize(text) {
     if (!text || text.length === 0) return;
     let currentText = String(text);
