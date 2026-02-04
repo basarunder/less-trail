@@ -1,9 +1,26 @@
 // --- Global Variables ---
-let currentPhrase = "Tap or Click to Roll (uses API)";
+let currentPhrase = ""; // Empty initially
 let usedWords = new Set();
 let currentFontSize = 60;
 let isLoading = false;
-let showDebugShapes = false; // Keep debug shapes off
+let hasStarted = false; // New state: waiting for first interaction
+
+// Dice Face State Variables
+let currentDiceRoll = { d1: 1, d2: 1 };
+let lastRollTime = 0;
+const ROLL_DURATION = 3000; // Slower animation (3 seconds)
+const ANIMATION_SPEED = 10; // Update dice every X frames
+
+// ASCII Dice Faces (Monospaced)
+// 9 chars wide, 5 lines tall (approx)
+const ASCII_FACES = {
+    1: "+-------+\n|       |\n|   O   |\n|       |\n+-------+",
+    2: "+-------+\n| O     |\n|       |\n|     O |\n+-------+",
+    3: "+-------+\n| O     |\n|   O   |\n|     O |\n+-------+",
+    4: "+-------+\n| O   O |\n|       |\n| O   O |\n+-------+",
+    5: "+-------+\n| O   O |\n|   O   |\n| O   O |\n+-------+",
+    6: "+-------+\n| O   O |\n| O   O |\n| O   O |\n+-------+"
+};
 
 // --- p5.js Setup Function ---
 function setup() {
@@ -12,50 +29,155 @@ function setup() {
     colorMode(RGB);
     textAlign(CENTER, CENTER); // Critical for alignment
     console.log("[Setup] textAlign set to (CENTER, CENTER)");
-    // Keep default font for now, consider changing for specific style
-    textFont('Arial, Helvetica, sans-serif', currentFontSize);
+
+    // Set default font (will be overridden for specific elements)
+    textFont('Doto', currentFontSize);
     fill(255); // White text
     console.log("[Setup] Setup complete. Tap or Click.");
-    calculateAdaptiveFontSize(currentPhrase);
+    calculateMetrics();
 }
 
 // --- p5.js Draw Function ---
 function draw() {
     background(0); // Black background
-    textSize(currentFontSize);
-    fill(255); // White text
-
-    let displayPhrase = isLoading ? "ROLLING..." : currentPhrase; // Uppercase Rolling too
-
     let centerX = width / 2;
-    let centerY = height / 2;
+    let centerY = height / 2; // Absolute center for Intro State
 
-    // Simplified text call
-    text(displayPhrase, centerX, centerY);
+    // --- Fixed Layout Calculation ---
+    // Decouple dice size from adaptive text size to prevent jumping.
+    // Calculate a fixed size for the dice based purely on screen dimensions.
+    let fixedDiceFontSize = min(height * 0.15, width / 20);
+
+    // Dice Block Height approx: 5 lines * leading(1.15) * fontSize
+    let diceBlockHeight = 5 * fixedDiceFontSize * 1.15;
+
+    // Reference Text Height (for positioning reference only)
+    // Used to calculate the center point of the layout group.
+    let refTextHeight = height * 0.15;
+
+    let gap = height * 0.05; // 5% height gap
+
+    let totalGroupHeight = diceBlockHeight + gap + refTextHeight;
+    let groupStartY = (height - totalGroupHeight) / 2;
+
+    // Fixed vertical centers for drawing
+    let diceY = groupStartY + (diceBlockHeight / 2);
+    let textY = groupStartY + diceBlockHeight + gap + (refTextHeight / 2);
+
+
+    if (!hasStarted) {
+        // --- State 0: Intro ---
+        // Single die (6) in the absolute center
+        // We use centerY (absolute center) instead of diceY (layout center) for the intro
+        // so it looks perfectly centered before the game layout takes over.
+        drawSingleDie(6, centerX, centerY, fixedDiceFontSize);
+    } else if (isLoading) {
+        let timeSinceLastRoll = millis() - lastRollTime;
+
+        if (timeSinceLastRoll < ROLL_DURATION) {
+            // Animating Dice
+            let d1, d2;
+            if (frameCount % ANIMATION_SPEED === 0) {
+                d1 = floor(random(1, 7));
+                d2 = floor(random(1, 7));
+                draw.tempD1 = d1;
+                draw.tempD2 = d2;
+            } else {
+                d1 = draw.tempD1 || 1;
+                d2 = draw.tempD2 || 1;
+            }
+            drawDice(d1, d2, centerX, diceY, fixedDiceFontSize);
+        } else {
+            // Final Dice
+            drawDice(currentDiceRoll.d1, currentDiceRoll.d2, centerX, diceY, fixedDiceFontSize);
+        }
+
+    } else {
+        // State 2: Result
+        drawDice(currentDiceRoll.d1, currentDiceRoll.d2, centerX, diceY, fixedDiceFontSize);
+
+        // Draw Phrase (if exists)
+        if (currentPhrase) {
+            textFont('Doto');
+            textSize(currentFontSize); // Keeps text adaptive
+            fill(255);
+            text(currentPhrase, centerX, textY);
+        }
+    }
 }
+
+// --- Helper function to draw dice faces ---
+function drawDice(d1Value, d2Value, centerX, centerY, fontSize) {
+    if (!ASCII_FACES[d1Value] || !ASCII_FACES[d2Value]) { return; }
+
+    const face1 = ASCII_FACES[d1Value];
+    const face2 = ASCII_FACES[d2Value];
+
+    textFont('Doto'); // Blocky terminal font for dice
+    textSize(fontSize);
+
+    // Adjust leading to make them look more square
+    textLeading(fontSize * 1.15);
+
+    // Calculate spacing dynamically to prevent edge overlap
+    // Distance from center to dice center
+    let offset = width * 0.25;
+
+    // Draw Die 1 (Left)
+    text(face1, centerX - offset, centerY);
+
+    // Draw Die 2 (Right)
+    text(face2, centerX + offset, centerY);
+}
+
+// --- Helper function to draw a single die (Intro State) ---
+function drawSingleDie(dValue, x, y, fontSize) {
+    if (!ASCII_FACES[dValue]) return;
+    textFont('Doto');
+    textSize(fontSize);
+    textLeading(fontSize * 1.15);
+    text(ASCII_FACES[dValue], x, y);
+}
+
 
 // --- Trigger Function ---
 async function triggerPhraseGeneration() {
     if (isLoading) { console.log("[Trigger] Ignored: Already loading."); return; }
-    isLoading = true;
-    currentPhrase = "ROLLING..."; // Uppercase here too
-    console.log("[Trigger] Set loading state TRUE");
 
+    // Start game on first click
+    hasStarted = true;
+
+    // Hide cursor on interaction
+    noCursor();
+
+    // 1. Initiate Roll State (Show Dice Animation/Stops)
+    isLoading = true;
+    let d1 = floor(random(1, 7)), d2 = floor(random(1, 7));
+    currentDiceRoll = { d1: d1, d2: d2 };
+    lastRollTime = millis();
+
+    // Clear phrase so nothing shows below dice while rolling
+    currentPhrase = "";
+    console.log(`[Trigger] Set loading state TRUE. Rolled initial dice: D1=${d1}, D2=${d2}`);
+
+    // 2. Wait for the user to observe the dice for ROLL_DURATION
+    await new Promise(resolve => setTimeout(resolve, ROLL_DURATION));
+
+    // 3. Proceed with API call (which will update the display again briefly)
     console.log("\n--- Trigger Received: Generating Phrase via API ---");
     try {
-        currentPhrase = await generatePhrase(); // generatePhrase is async
+        const resultPhrase = await generatePhrase(); // generatePhrase is async
+        currentPhrase = resultPhrase;
         console.log(`[Trigger] Phrase generated: "${currentPhrase}"`);
     } catch (error) {
         console.error("[Trigger] Error generating phrase:", error);
         currentPhrase = "ERROR: COULD NOT GENERATE PHRASE"; // Uppercase error
     } finally {
+        // 4. Final State: Show Phrase
         isLoading = false;
         console.log("[Trigger] Set loading state FALSE");
-        calculateAdaptiveFontSize(currentPhrase);
-        console.log("[Trigger] Adaptive font size recalculated.");
     }
 }
-
 // --- Event Handlers ---
 function mousePressed() {
     console.log("[Event] Mouse Pressed");
@@ -71,7 +193,7 @@ function touchStarted() {
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
     console.log(`[Window Resized] New dimensions: width=${windowWidth}, height=${windowHeight}`);
-    calculateAdaptiveFontSize(currentPhrase);
+    calculateMetrics();
 }
 
 
@@ -114,8 +236,8 @@ async function fetchWordFromAPI(length, typeHint = 'any') {
 
 // --- Helper: Generate Phrase using API ---
 async function generatePhrase() {
-    let d1 = floor(random(1, 7)), d2 = floor(random(1, 7));
-    console.log(`Rolled: D1=${d1}, D2=${d2}`);
+    let d1 = currentDiceRoll.d1, d2 = currentDiceRoll.d2; // Use the *final* dice values
+    console.log(`Generating phrase based on final roll: D1=${d1}, D2=${d2}`);
     let word1_base = null, word2_base = null;
     let word1_display = null, word2_display = null;
 
@@ -159,8 +281,13 @@ async function generatePhrase() {
     // --- NO PLURALIZATION BLOCK ---
 
     // --- Final Phrase Construction ---
-    // Combine and convert the whole phrase to uppercase
-    let finalPhrase = `${word1_display} ${word2_display}`.toUpperCase();
+    // Combine words. Randomize case (50% Lowercase, 50% Uppercase) as requested.
+    let finalPhrase = `${word1_display} ${word2_display}`;
+    if (random() < 0.5) {
+        finalPhrase = finalPhrase.toLowerCase();
+    } else {
+        finalPhrase = finalPhrase.toUpperCase();
+    }
     console.log(`Constructed phrase: '${finalPhrase}'`);
 
     // --- Update Global Used Words ---
@@ -170,7 +297,7 @@ async function generatePhrase() {
         usedWords.add(word1_base);
     }
     if (word2_base) {
-         console.log(`  Adding Word 2 base '${word2_base}' to used set.`);
+        console.log(`  Adding Word 2 base '${word2_base}' to used set.`);
         usedWords.add(word2_base);
     }
     console.log(`Used words count: ${usedWords.size}`);
@@ -179,31 +306,33 @@ async function generatePhrase() {
 }
 
 
-// --- Helper Function: Adaptive Font Size ---
-// (Remains the same)
-function calculateAdaptiveFontSize(text) {
-    if (!text || text.length === 0) { console.log("[FontCalc] No text to calculate size for."); return; }
-    let currentText = String(text);
-    // console.log(`[FontCalc] Calculating for text: "${currentText}"`);
-    let testFontSize = height * 0.7;
-    let margin = width * 0.1;
+// --- Helper Function: Calculate Fixed Font Size ---
+function calculateMetrics() {
+    // We calculate a size that fits the MAXIMUM possible phrase length (6+1+6 = 13 chars).
+    // This ensures the font size is constant ("fixed") and doesn't jump between rolls.
+    // 'M' is typically the widest char, though Doto is monospace, so any 13 chars work.
+    let dummyText = "MMMMMM MMMMMM";
+
+    // Logic similar to before, but fitting this dummy text
+    let testFontSize = height * 1.0;
+    let margin = width * 0.05;
     let availableWidth = width - margin;
-    let availableHeight = height * 0.8;
-    // console.log(`[FontCalc] Initial check: MaxW=${availableWidth.toFixed(1)}, MaxH=${availableHeight.toFixed(1)}, StartSize=${testFontSize.toFixed(1)}`);
+    let availableHeight = height * 0.5; // Reserved text area
+
     textSize(testFontSize);
-    let currentTextWidth = textWidth(currentText);
-    // console.log(`[FontCalc] Initial text width at ${testFontSize.toFixed(1)}px: ${currentTextWidth.toFixed(1)}px`);
+    let currentTextWidth = textWidth(dummyText);
+
     while (currentTextWidth > availableWidth && testFontSize > 10) {
         testFontSize -= 2;
         textSize(testFontSize);
-        currentTextWidth = textWidth(currentText);
+        currentTextWidth = textWidth(dummyText);
     }
     let currentTextHeight = textAscent() + textDescent();
     while (currentTextHeight > availableHeight && testFontSize > 10) {
-         testFontSize -= 2;
-         textSize(testFontSize);
-         currentTextHeight = textAscent() + textDescent();
+        testFontSize -= 2;
+        textSize(testFontSize);
+        currentTextHeight = textAscent() + textDescent();
     }
     currentFontSize = max(10, testFontSize);
-    console.log(`[FontCalc] Final adaptive font size: ${currentFontSize.toFixed(1)}px`);
+    console.log(`[Metrics] Fixed font size calculated: ${currentFontSize.toFixed(1)}px (based on '${dummyText}')`);
 }

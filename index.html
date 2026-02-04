@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
@@ -10,8 +11,13 @@
     <script src="https://cdn.jsdelivr.net/npm/pluralize@8.0.0/pluralize.min.js"></script>
     <!-- Your sketch file -->
     <script src="sketch.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             overflow: hidden;
@@ -19,16 +25,21 @@
             height: 100%;
             background-color: black;
             color: white;
+            touch-action: none;
+            /* Prevent touch scrolling/zooming */
         }
+
         canvas {
             display: block;
-             /* Explicitly position canvas top-left; might help prevent offsets */
+            /* Explicitly position canvas top-left; might help prevent offsets */
             position: absolute;
             top: 0;
             left: 0;
         }
     </style>
 </head>
+
 <body>
 </body>
+
 </html>
