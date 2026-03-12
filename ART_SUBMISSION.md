@@ -1,4 +1,4 @@
-PROBABILITY TERMINAL: A Generative Syntax Experiment
+MEANING IS A GAMBLE: A Generative Syntax Experiment
 Artist: Başar Ünder
 
 Year: 2025
@@ -6,7 +6,7 @@ Medium: Web-based Generative Software (p5.js, Datamuse API, Custom ASCII algorit
 
 Concept
 
-Probability Terminal is a digital study in chance, constraint, and meaning. It strips the analog act of rolling dice of its numerical value and transforms it into a lexical event. Ultimately, meaning is a gamble.
+This installation is a digital study in chance, constraint, and meaning. It strips the analog act of rolling dice of its numerical value and transforms it into a lexical event. Ultimately, meaning is a gamble.
 
 When you interact with the system, two virtual dice are cast. Their values do not represent a score. Instead, they dictate the strict structural limits of a new phrase by defining the exact length of two words. A roll of 3 and 6 does not equal 9. It creates a three-letter seed and a six-letter anchor (e.g., "EGO MANIAC").
 
