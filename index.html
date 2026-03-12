@@ -131,7 +131,7 @@
         function drawDice(d1Value, d2Value, centerX, centerY, fontSize) {
             if (!ASCII_FACES[d1Value] || !ASCII_FACES[d2Value]) { return; }
             
-            // BUG DÜZELTMESİ: Zarların önceki şeffaflıktan etkilenmemesi için rengi %100 beyaz yapıyoruz.
+            // Zarların önceki şeffaflıktan etkilenmemesi için rengi %100 beyaz yapıyoruz.
             fill(255); 
             
             const face1 = ASCII_FACES[d1Value];
@@ -152,7 +152,7 @@
             
             // Hayaletimsi görünüm için şeffaf beyaz
             fill(255, 255, 255, 180); 
-            text("Meaning\nIs\na\nGamble", x, y);
+            text("Meaning\nIs\na\nGamble", x, y); // <-- HATA BURADA DÜZELTİLDİ
             
             // Yeni manifesto diliyle etkileşim komutu
             textSize(14);
